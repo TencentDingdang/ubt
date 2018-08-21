@@ -1,0 +1,15 @@
+LoginProxy
+	requestGetBotAISpeechOption(DeviceManager deviceManager)
+		对应回调BindingListener.GET_BOT_AI_SPEECH_OPTION_TYPE
+		ProductManager.getInstance().supportAISpeechItems 该Device支持音色列表
+	requestSetDeviceAISpeech(ELoginPlatform platform, DeviceManager deviceManager, String speechID)
+		对应回调BindingListener.SET_DEVICE_AI_SPEECH_TYPE
+	requestGetDeviceAISpeech(ELoginPlatform platform, DeviceManager deviceManager)
+		对应回调BindingListener.GET_DEVICE_AI_SPEECH_TYPE
+		ProductManager.getInstance().currAISpeechItem 当前Device音色
+	
+AISpeechItem：音色结构体
+strSpeechID;                                                // 音色ID       
+strSpeechName;                                              // 音色名称
+strSpeechEnum;                                              // AISpeechType 枚举值   
+strIsDefaultOption;                                         // 是否是默认音色

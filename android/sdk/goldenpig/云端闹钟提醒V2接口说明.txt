@@ -1,0 +1,29 @@
+LoginProxy
+	requestTskmUniAccess(ELoginPlatform platform, DeviceManager deviceManager, UniAccessInfo uniAccessInfo)
+	
+参数：
+	platform--登录帐号类型
+	deviceManager--设备基本信息
+	uniAccessInfo--统一接入协议结构体
+		UniAccessInfo
+			domain--填写alarm
+			intent--填写cloud_manager
+			jsonBlobInfo--填写操作闹钟提醒JSON数据
+				示例："{\"eType\":0,\"stCloudAlarmReq\":{\"stAccountBaseInfo\":{\"eAcctType\":3,\"strAcctId\":\"o05it0dAhgPPVfQXgXiNveqiLHAA\"}," +
+						"\"eCloud_type\":1,\"sPushInfo\":\"\",\"vCloudAlarmData\":[{\"stAIDeviceBaseInfo\":{\"strGuid\":\"9cb1fbf4c54442cc80c9aed8cb3c25b6\",\"strAppKey\":\"2b82efec-a77c-46cd-a2c2-8df9bbd1d1c3\"}," +
+							"\"eRepeatType\":1,\"lAlarmId\":1536027722795,\"lStartTimeStamp\":1536069600,\"vRingId\":[\"resource.search$10003\"]}]}}"
+							
+AuthorizeListener onSuccess onError
+返回类型：AuthorizeListener.UNIACCESS_TYPE
+onSuccess时commOpInfo.errMsg返回操作结果JSON数据
+onError时commOpInfo.errMsg返回错误类型
+
+使用实例
+DeviceManager deviceManager = new DeviceManager();
+deviceManager.productId = TEST_PRODUCTID;
+deviceManager.dsn = TEST_DSN;
+UniAccessInfo info = new UniAccessInfo();
+info.domain = UNIACCESS_DOMAIN_EXAMPLE;
+info.intent = UNIACCESS_INTENT_EXAMPLE;
+info.jsonBlobInfo = UNIACCESS_JSON_REQ_EXAMPLE;
+LoginProxy.getInstance().requestTskmUniAccess(ELoginPlatform.WX, deviceManager, info);

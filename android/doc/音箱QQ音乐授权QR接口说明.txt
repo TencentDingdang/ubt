@@ -1,0 +1,9 @@
+LoginProxy
+	requestQRAuth(QRAuthInfo qrAuthInfo, UserCenterStateListener stateListener, ProxyDataListener dataListener, MotionEventListener motionEventListener, boolean isTestEnv)
+	
+参数：
+	qrAuthInfo：音箱主账号信息
+	stateListener：主账号登录状态回调
+	dataListener：音箱与前端接口通信回调
+	motionEventListener：触摸事件回调
+	isTestEnv：是否为测试环境

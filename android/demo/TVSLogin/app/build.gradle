@@ -1,12 +1,15 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion "25.0.2"
+    compileSdkVersion 27
+    buildToolsVersion '27.0.3'
+
+    defaultPublishConfig "dingdangdemoDebug"
+
     defaultConfig {
         applicationId "com.tencent.ai.dobbydemo"
         minSdkVersion 15
-        targetSdkVersion 25
+        targetSdkVersion 27
         versionCode 1
         versionName "1.0"
     }
@@ -25,13 +28,14 @@ android {
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile(name:'tvsloginlib-dingdangdemo-release', ext:'aar')
-    compile(name:'tvsdevicelib-release', ext:'aar')
-    compile 'com.android.support:appcompat-v7:25.3.1'
-    compile 'com.android.support.constraint:constraint-layout:1.0.2'
-    compile 'com.tencent.mm.opensdk:wechat-sdk-android-with-mta:+'
-    compile 'com.android.support:design:25.2.0'
-    compile 'com.squareup.okhttp3:okhttp:3.8.1'
-    compile 'com.google.code.gson:gson:2.8.1'
+    api fileTree(dir: 'libs', include: ['*.jar'])
+    api(name:'tvsloginlib-dingdangdemo-release', ext:'aar')
+    api(name:'tvsdevicelib-release', ext:'aar')
+    api 'com.android.support:appcompat-v7:27.1.1'
+    api 'com.android.support.constraint:constraint-layout:1.0.2'
+    api 'com.tencent.mm.opensdk:wechat-sdk-android-with-mta:+'
+    api 'com.google.zxing:core:3.3.0'
+    api 'com.android.support:design:27.1.1'
+    api 'com.squareup.okhttp3:okhttp:3.8.1'
+    api 'com.google.code.gson:gson:2.8.1'
 }

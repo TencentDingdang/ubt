@@ -1,17 +1,15 @@
 package com.tencent.ai.dobbydemo;
 
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.LayoutInflater;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -28,6 +26,7 @@ import com.tencent.ai.tvs.business.AlarmBusinessInfo;
 import com.tencent.ai.tvs.business.EAlarmOpResultType;
 import com.tencent.ai.tvs.business.EAlarmOper;
 import com.tencent.ai.tvs.business.EAlarmRepeatType;
+import com.tencent.ai.tvs.business.UniAccessInfo;
 import com.tencent.ai.tvs.comm.CommOpInfo;
 import com.tencent.ai.tvs.env.ELocationType;
 import com.tencent.ai.tvs.env.ELoginEnv;
@@ -40,43 +39,47 @@ import com.tencent.ai.tvs.info.LocManager;
 import com.tencent.ai.tvs.info.LocationInfo;
 import com.tencent.ai.tvs.info.ProductManager;
 import com.tencent.ai.tvs.info.PushInfoManager;
-import com.tencent.ai.tvs.info.QQInfoManager;
 import com.tencent.ai.tvs.info.QQOpenInfoManager;
 import com.tencent.ai.tvs.info.UserInfoManager;
 import com.tencent.ai.tvs.info.WxInfoManager;
 import com.tencent.ai.tvs.miniprogram.EMiniProgType;
 import com.tencent.ai.tvs.miniprogram.MiniProgCallback;
 import com.tencent.ai.tvs.miniprogram.MiniProgManager;
+import com.tencent.ai.tvs.qrauth.QRAuthInfo;
+import com.tencent.ai.tvs.qrcode.QRCodeFontUICallback;
 import com.tencent.ai.tvs.qrcode.QRCustomViewListener;
 import com.tencent.ai.tvs.qrcode.QRStateListener;
-import com.tencent.ai.tvs.qrcodesdk.QRCodeProtocol;
-import com.tencent.ai.tvs.qrcodesdk.QRCodeStateListener;
-import com.tencent.ai.tvs.qrcodesdk.QRCodeUtil;
 import com.tencent.ai.tvs.qrcodesdk.WxQRCodeInfoManager;
+import com.tencent.ai.tvs.ui.MotionEventListener;
+import com.tencent.ai.tvs.ui.ProxyDataListener;
 import com.tencent.ai.tvs.ui.UserCenterStateListener;
+import com.tencent.ai.tvs.zxing.util.DDQRCodeFontUICallback;
+import com.tencent.ai.tvs.zxing.util.QRKeyEventCallback;
+import com.tencent.ai.tvs.zxing.util.DevRelationQRFontUICallback;
+import com.tencent.ai.tvs.zxing.util.DingDangQRInfoManager;
+import com.tencent.ai.tvs.zxing.util.QRScanResultListener;
 import com.tencent.connect.common.Constants;
-import com.tencent.mm.opensdk.diffdev.DiffDevOAuthFactory;
-import com.tencent.mm.opensdk.diffdev.IDiffDevOAuth;
-import com.tencent.mm.opensdk.diffdev.OAuthErrCode;
-import com.tencent.mm.opensdk.diffdev.OAuthListener;
+
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 
 import SmartService.EAIPushIdType;
-import oicq.wlogin_sdk.request.WtloginHelper;
+import SmartService.EQRCodeState;
 
 public class MainActivity extends AppCompatActivity implements AuthorizeListener, BindingListener {
 
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
 
     private static final String TEST_APPID_WX = "wxdbd76c1af795f58e";
-    private static final String TEST_APPSECRET_WX = "";
+    private static final String TEST_APPSECRET_WX = "723f0aca78996958212e2fdd41ebfc68";
     private static final String TEST_APPID_QQOPEN = "101470979";
-    private static final long TEST_APPID_QQ = 1600001268L;
 
-    private static final String TEST_MINIPROG_USERNAME = "";
-    private static final String TEST_MINIPROG_MAIN_PATH = "";
-    private static final String TEST_MINIPROG_GRADE_PATH =  "";
+    private static final String TEST_QRSDK_APPID_WX = ConstantValues.QRSDK_APPID_WX;
+
+    private static final String TEST_MINIPROG_USERNAME = "gh_8cf389396e29";
+    private static final String TEST_MINIPROG_MAIN_PATH = "pages/index/index_poem";
+    private static final String TEST_MINIPROG_GRADE_PATH =  "pages/grade/grade";
 
     private static final long TIME_MILLIS_DELTA = 1000 * 60 * 60;
 
@@ -84,8 +87,8 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
     private static final String TEST_APPKEY = "7e8ab486-c6f6-4ecc-b52e-7ea8da82c9da";
     private static final String TEST_APPACCEETOKEN = "9cb1fbf4c54442cc80c9aed8cb3c25b6";
     private static final String TEST_GUID = "9cb1fbf4c54442cc80c9aed8cb3c25b6";
-    private static final String TEST_PRODUCTID = "7e8ab486-c6f6-4ecc-b52e-7ea8da82c9da:9cb1fbf4c54442cc80c9aed8cb3c25b6";
-    private static final String TEST_DSN = "FF31F085A55DD019C8575CFB";
+    private static final String TEST_PRODUCTID = "2b82efec-a77c-46cd-a2c2-8df9bbd1d1c3:b50fd5a7baa547188516fec1fb5e3348";
+    private static final String TEST_DSN = "AC:35:EE:22:DE:28";
 
     private static final String TEST_DEVOEM = "GGMM";
     private static final String TEST_DEVTYPE = "SPEAKER";
@@ -96,23 +99,28 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
     private static final String TEST_WX_USER_RET = " {\"openid\":\"olW1HwuZs4zRIiTs8xN_5i65DU4Q\",\"nickname\":\"时间段hddjd大喊大叫觉得\",\"sex\":0,\"language\":\"zh_CN\",\"city\":\"\",\"province\":\"\",\"country\":\"\",\"headimgurl\":\"http:\\/\\/thirdwx.qlogo.cn\\/mmopen\\/vi_32\\/eM2qvBP8HYxrXdCTlAib2ibmeJw4LYZfJOYsbDShNocXuIUWEnQ1Nwh5Nk5lBjb3LJhOt1r2dt5lHtIAdcUGx7RA\\/132\",\"privilege\":[],\"unionid\":\"o9GiTuAkK5sryCobPgdS_iDo1W8A\"}";
     private static final String TEST_QQOPEN_USER_RET = "{\"ret\":0,\"msg\":\"\",\"is_lost\":0,\"nickname\":\"\",\"gender\":\"男\",\"province\":\"\",\"city\":\"\",\"year\":\"0\",\"figureurl\":\"http:\\/\\/qzapp.qlogo.cn\\/qzapp\\/1105886239\\/24361BBA12837FFA742C79EC810A6DA8\\/30\",\"figureurl_1\":\"http:\\/\\/qzapp.qlogo.cn\\/qzapp\\/1105886239\\/24361BBA12837FFA742C79EC810A6DA8\\/50\",\"figureurl_2\":\"http:\\/\\/qzapp.qlogo.cn\\/qzapp\\/1105886239\\/24361BBA12837FFA742C79EC810A6DA8\\/100\",\"figureurl_qq_1\":\"http:\\/\\/thirdqq.qlogo.cn\\/qqapp\\/1105886239\\/24361BBA12837FFA742C79EC810A6DA8\\/40\",\"figureurl_qq_2\":\"http:\\/\\/thirdqq.qlogo.cn\\/qqapp\\/1105886239\\/24361BBA12837FFA742C79EC810A6DA8\\/100\",\"is_yellow_vip\":\"0\",\"vip\":\"0\",\"yellow_vip_level\":\"0\",\"level\":\"0\",\"is_yellow_year_vip\":\"0\"}";
 
-    private LoginProxy proxy;
+    private static final String DD_AUTH_ALADE_URL = "dingdang://add_device?oem=alavening";
+    private static final String DD_DOWNLOAD_URL = "http://a.app.qq.com/o/simple.jsp?pkgname=com.tencent.ai.dobby";
 
-    // 内部使用
-    private LoginProxy innerProxy;
+    private static final String UNIACCESS_DOMAIN_EXAMPLE = "alarm";
+    private static final String UNIACCESS_INTENT_EXAMPLE = "cloud_manager";
+    private static final String UNIACCESS_JSON_REQ_EXAMPLE = "{\"eType\":0,\"stCloudAlarmReq\":{\"stAccountBaseInfo\":{\"eAcctType\":3,\"strAcctId\":\"o05it0dAhgPPVfQXgXiNveqiLHAA\"}," +
+            "\"eCloud_type\":1,\"sPushInfo\":\"\",\"vCloudAlarmData\":[{\"stAIDeviceBaseInfo\":{\"strGuid\":\"9cb1fbf4c54442cc80c9aed8cb3c25b6\",\"strAppKey\":\"2b82efec-a77c-46cd-a2c2-8df9bbd1d1c3\"}," +
+            "\"eRepeatType\":1,\"lAlarmId\":1536027722795,\"lStartTimeStamp\":1536069600,\"vRingId\":[\"resource.search$10003\"]}]}}";
+
+    private LoginProxy proxy;
 
     private WxInfoManager wxInfoManager;
     private QQOpenInfoManager qqOpenInfoManager;
-    private QQInfoManager qqInfoManager;
-
-    private IDiffDevOAuth oauth;
 
     private RadioGroup netEnvRG;
-    private RadioButton testEnvRB, formalEnvRB;
+    private RadioButton testEnvRB, formalEnvRB, exEnvRB;
+
+    private RadioGroup loginfuncRG;
+    private RadioButton normalRB, qrRB;
 
     private Button wxLoginBtn, wxLogoutBtn;
     private Button qqOpenLoginBtn, qqOpenLogoutBtn;
-    private Button qqLoginBtn, qqLogoutBtn;
     private Button reportEndStateBtn, toUserCenterWithCallbackBtn, toGetClientIdBtn;
     private Button alarmCreate, alarmDel, alarmUpdate, alarmQuery;
     private long addedAlarmId;
@@ -126,6 +134,9 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
     private EditText bindPhoneNumberEditText;
     private Button bindPhoneNumberButton;
     private TextView bindPhoneNumberTextView;
+
+    private EditText tvsOpenUrlEditText;
+    private Button tvsOpenUrlButton;
 
     private Button bindLocationButton, queryLocationButton;
     private TextView bindLocationTextView;
@@ -151,18 +162,22 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
     private Button getDeviceStatusButton;
     private TextView getDeviceStatusTextView;
 
-    private Button toSmartLinkButton, toSoftAPButton, toQRLoginButton, generateWXQRCodeButton, toMiniProgramButton;
+    private Button toSmartLinkButton, toSoftAPButton, toQRLoginButton, toQRSDKLoginButton, toMiniProgramButton;
+    private Button ddQRShowButton, ddQRScanButton, ddQRUnbindAndClearButton;
+    private Button drQRShowButton, drQRScanButton;
+    private Button getBotAISpeechOptionButton, setDeviceAISpeechButton, getDeviceAISpeechButton;
+    private Button uniAccessButton;
 
-    private LinearLayout wxTokenLayout, qqopenTokenLayout, qqTokenLayout;
-    private TextView wxATTextView, wxRTTextView, qqopenATTextView, qqATTextView;
+    private Button qrAuthButton;
+
+    private LinearLayout wxTokenLayout, qqopenTokenLayout;
+    private TextView wxATTextView, wxRTTextView, qqopenATTextView;
 
     private DeviceManager deviceManager;
 
     private static ELoginPlatform TEST_PLATFORM = ELoginPlatform.WX;
 
     private boolean isSimpleInterface;
-
-    private QRCodeProtocol mQRCodeProtocol;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -184,10 +199,29 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
                 if (testEnvRB.getId() == checkedId) {
                     proxy.setLoginEnv(ELoginEnv.TEST);
                     proxy.setUserCenterEnv(ELoginEnv.TEST);
+                    proxy.setDDQREnv(ELoginEnv.TEST);
                 }
                 else if (formalEnvRB.getId() == checkedId) {
                     proxy.setLoginEnv(ELoginEnv.FORMAL);
                     proxy.setUserCenterEnv(ELoginEnv.FORMAL);
+                    proxy.setDDQREnv(ELoginEnv.FORMAL);
+                }
+                else if (exEnvRB.getId() == checkedId) {
+                    proxy.setLoginEnv(ELoginEnv.EX);
+                    proxy.setUserCenterEnv(ELoginEnv.EX);
+                    proxy.setDDQREnv(ELoginEnv.EX);
+                }
+            }
+        });
+
+        loginfuncRG.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                if (normalRB.getId() == checkedId) {
+                    proxy = LoginProxy.getInstance(TEST_APPID_WX, TEST_APPID_QQOPEN, MainActivity.this);
+                }
+                else if (qrRB.getId() == checkedId) {
+                    proxy = LoginProxy.getInstance(TEST_QRSDK_APPID_WX, TEST_APPID_QQOPEN, MainActivity.this);
                 }
             }
         });
@@ -226,13 +260,6 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
             }
         });
 
-        qqLoginBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                innerProxy.requestLogin(ELoginPlatform.QQ, TEST_PRODUCTID, TEST_DSN, MainActivity.this);
-            }
-        });
-
         wxLogoutBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -247,17 +274,26 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
             }
         });
 
-        qqLogoutBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                innerProxy.clearToken(ELoginPlatform.QQ, MainActivity.this);
-            }
-        });
-
         toGetClientIdBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Log.v(LOG_TAG, "ClientId = " + proxy.getClientId(TEST_PLATFORM));
+            }
+        });
+
+        toGetClientIdBtn.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                try {
+                    intent.setData(Uri.parse(DD_AUTH_ALADE_URL));
+                    startActivity(intent);
+                } catch (ActivityNotFoundException e) {
+                    e.printStackTrace();
+                    intent.setData(Uri.parse(DD_DOWNLOAD_URL));
+                    startActivity(intent);
+                }
+                return true;
             }
         });
 
@@ -392,6 +428,36 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
             @Override
             public void onClick(View v) {
                 proxy.requestBindPhoneNumber(TEST_PLATFORM, getCaptchaEditText.getText().toString(), bindPhoneNumberEditText.getText().toString());
+            }
+        });
+
+        tvsOpenUrlButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (tvsOpenUrlEditText.getText().toString().equals("")) {
+                    tvsOpenUrlEditText.setText("https://ddsdk.html5.qq.com/ugc");
+                }
+                proxy.tvsOpenUrlWithCallback(tvsOpenUrlEditText.getText().toString(), new UserCenterStateListener() {
+                    @Override
+                    public void onSuccess(ELoginPlatform platform, int type, CommOpInfo commOpInfo) {
+
+                    }
+
+                    @Override
+                    public void onError(int type, CommOpInfo commOpInfo) {
+
+                    }
+
+                    @Override
+                    public void onCancel(int type, CommOpInfo commOpInfo) {
+
+                    }
+                }, new ProxyDataListener() {
+                    @Override
+                    public boolean onDataRecv(JSONObject data) {
+                        return true;
+                    }
+                });
             }
         });
 
@@ -536,11 +602,10 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
             }
         });
 
-        generateWXQRCodeButton.setOnClickListener(new View.OnClickListener() {
+        toQRSDKLoginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mQRCodeProtocol.reqAccessToken(TEST_APPID_WX, TEST_APPSECRET_WX);
-
+                proxy.requestQRSDKLogin(MainActivity.this, qrStateListener, qrCustomViewListener, qrCodeFontUICallback, qrKeyEventCallback);
             }
         });
 
@@ -557,6 +622,153 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
                         Log.v(LOG_TAG, "onReceiveExtMsg msg = " + msg);
                     }
                 });
+            }
+        });
+
+        ddQRShowButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                DeviceManager deviceManager = new DeviceManager();
+                deviceManager.productId = TEST_PRODUCTID;
+                deviceManager.dsn = TEST_DSN;
+                String jsonData = "";
+                proxy.requestDingDangQRShow(MainActivity.this, deviceManager, qrStateListener, qrCustomViewListener, ddqrCodeFontUICallback, qrKeyEventCallback, jsonData);
+            }
+        });
+
+        ddQRScanButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                proxy.requestDingDangQRScan(MainActivity.this, new QRScanResultListener() {
+                    @Override
+                    public void onSuccess(Object msg) {
+
+                    }
+
+                    @Override
+                    public void onCancel(Object msg) {
+
+                    }
+                });
+            }
+        });
+
+        ddQRUnbindAndClearButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                PushInfoManager pushManager = PushInfoManager.getInstance();
+                DeviceManager devManager = new DeviceManager();
+                pushManager.idType = EAIPushIdType._ETVSSpeakerIdentifier;
+                pushManager.idExtra = ConstantValues.PUSHMGR_IDEXTRA;
+                devManager.productId = TEST_PRODUCTID;
+                devManager.dsn = TEST_DSN;
+
+                proxy.requestDelPushMapInfo(TEST_PLATFORM, pushManager, devManager);
+
+                proxy.requestSetQRCodeState(devManager, DingDangQRInfoManager.QRTYPE_BINDING, EQRCodeState._EHASNOTSCAN);
+            }
+        });
+
+        drQRShowButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                DeviceManager deviceManager = new DeviceManager();
+                deviceManager.productId = TEST_PRODUCTID;
+                deviceManager.dsn = TEST_DSN;
+                proxy.requestDevRelationQRShow(MainActivity.this, deviceManager, qrStateListener, qrCustomViewListener, devRelationQRFontUICallback, qrKeyEventCallback);
+            }
+        });
+
+        drQRScanButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
+
+        getBotAISpeechOptionButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                DeviceManager deviceManager = new DeviceManager();
+                deviceManager.productId = TEST_PRODUCTID;
+                deviceManager.dsn = TEST_DSN;
+                proxy.requestGetBotAISpeechOption(deviceManager);
+            }
+        });
+
+        setDeviceAISpeechButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                DeviceManager deviceManager = new DeviceManager();
+                deviceManager.productId = TEST_PRODUCTID;
+                deviceManager.dsn = TEST_DSN;
+                String speechID = "";
+                proxy.requestSetDeviceAISpeech(ELoginPlatform.WX, deviceManager, speechID);
+            }
+        });
+
+        getDeviceAISpeechButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                DeviceManager deviceManager = new DeviceManager();
+                deviceManager.productId = TEST_PRODUCTID;
+                deviceManager.dsn = TEST_DSN;
+                proxy.requestGetDeviceAISpeech(ELoginPlatform.WX, deviceManager);
+            }
+        });
+
+        uniAccessButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                DeviceManager deviceManager = new DeviceManager();
+                deviceManager.productId = TEST_PRODUCTID;
+                deviceManager.dsn = TEST_DSN;
+                UniAccessInfo info = new UniAccessInfo();
+                info.domain = UNIACCESS_DOMAIN_EXAMPLE;
+                info.intent = UNIACCESS_INTENT_EXAMPLE;
+                info.jsonBlobInfo = UNIACCESS_JSON_REQ_EXAMPLE;
+                proxy.requestTskmUniAccess(ELoginPlatform.WX, deviceManager, info);
+            }
+        });
+
+        qrAuthButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                QRAuthInfo info = new QRAuthInfo();
+                info.platform = ELoginPlatform.WX;
+                info.appId = "wxdbd76c1af795f58e";
+                info.openId = "o05it0dAhgPPVfQXgXiNveqiLHAA";
+                info.accessToken = "13_EW06jB7kRqfS1fL959cKw0n5zhRhArSoBEKNIzthFAxFmJme8RbcMUFZp0x75Od445yksuSAVpgNgc8_5IOQbZulnjWflHnD74Bbx-ZEzco";
+                info.refreshToken = "13_YGiL-Az8WWTU5avwrDXidhU1VDyf7rcpHbCeN4DKqlSKXS1ZNM953yib7STWgMGsKalCeKogCiZpyxtX1d7vBJVWbcY_VuD-WVnoYLXRtJw,21e9289200050a15";
+                info.tvsId = "21e9289200050a15";
+                info.expireTime = 7200L;
+                proxy.requestQRAuth(info,
+                        new UserCenterStateListener() {
+                            @Override
+                            public void onSuccess(ELoginPlatform platform, int type, CommOpInfo commOpInfo) {
+
+                            }
+
+                            @Override
+                            public void onError(int type, CommOpInfo commOpInfo) {
+
+                            }
+
+                            @Override
+                            public void onCancel(int type, CommOpInfo commOpInfo) {
+
+                            }
+                        }, new ProxyDataListener() {
+                            @Override
+                            public boolean onDataRecv(JSONObject data) {
+                                return true;
+                            }
+                        }, new MotionEventListener() {
+                            @Override
+                            public void onMotionDown() {
+
+                            }
+                        }, true);
             }
         });
     }
@@ -576,17 +788,11 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
             else if (RESULT_CANCELED == resultCode){
             }
         }
-        else if (requestCode == WtloginHelper.QuickLoginRequestCode.REQUEST_QQ_LOGIN
-                || requestCode == WtloginHelper.QuickLoginRequestCode.REQUEST_PT_LOGIN) {
-            if (RESULT_OK == resultCode) {
-                innerProxy.handleQQIntent(data);
-            }
-            super.onActivityResult(requestCode, resultCode, data);
-        }
     }
 
     @Override
     public void onSuccess(int type, CommOpInfo commOpInfo) {
+        Log.v(LOG_TAG, "onSuccess type = " + type + ", commOpInfo = " + commOpInfo);
         switch (type)
         {
             case AuthorizeListener.AUTH_TYPE:
@@ -606,12 +812,8 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
                     proxy.tvsSetUser(ELoginPlatform.QQOpen, TEST_QQOPEN_USER_RET);
                 }
                 break;
-            case AuthorizeListener.QQ_TVSIDRECV_TYPE:
-                qqLoginBtn.setEnabled(false);
-                break;
             case AuthorizeListener.TOKENVERIFY_TYPE:
                 qqOpenLoginBtn.setEnabled(false);
-                qqLoginBtn.setEnabled(false);
                 break;
             case AuthorizeListener.USERINFORECV_TYPE:
                 UserInfoManager mgr = UserInfoManager.getInstance();
@@ -634,9 +836,9 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
                 LocationInfo companyInfo = LocManager.getInstance().getLocation(ELocationType.COMPANY);
                 queryLocationLayout.setVisibility(View.VISIBLE);
                 queryLocationTextView.setText("HomeInfo:"+homeInfo.addr+"|"+homeInfo.name+"|"+homeInfo.latitube+"|"+homeInfo.longitube
-                                                            + "|" +homeInfo.cabAddr+"|"+homeInfo.cabName+"|"+homeInfo.cabLatitube+"|"+homeInfo.cabLongitube
-                                                                +"\nCompanyInfo:"+companyInfo.addr+"|"+companyInfo.name+"|"+companyInfo.latitube+"|"+companyInfo.longitube
-                                                                    + "|" +companyInfo.cabAddr+"|"+companyInfo.cabName+"|"+companyInfo.cabLatitube+"|"+companyInfo.cabLongitube);
+                        + "|" +homeInfo.cabAddr+"|"+homeInfo.cabName+"|"+homeInfo.cabLatitube+"|"+homeInfo.cabLongitube
+                        +"\nCompanyInfo:"+companyInfo.addr+"|"+companyInfo.name+"|"+companyInfo.latitube+"|"+companyInfo.longitube
+                        + "|" +companyInfo.cabAddr+"|"+companyInfo.cabName+"|"+companyInfo.cabLatitube+"|"+companyInfo.cabLongitube);
                 break;
             case BindingListener.SET_PUSH_MAP_INFOEX_TYPE:
                 devicebindTextView.setText("Bind Success Ex");
@@ -655,8 +857,8 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
                 break;
             case BindingListener.BIND_GET_DEVICE_STATUS_TYPE:
                 getDeviceStatusTextView.setText("sta=" + DeviceCPMemberManager.getInstance().deviceStatus
-                                + ",amt=" + DeviceCPMemberManager.getInstance().deviceAmt
-                                    +",amtU=" + DeviceCPMemberManager.getInstance().deviceAmtUnit);
+                        + ",amt=" + DeviceCPMemberManager.getInstance().deviceAmt
+                        +",amtU=" + DeviceCPMemberManager.getInstance().deviceAmtUnit);
                 break;
             case AuthorizeListener.REPORTENDSTATE_TYPE:
                 reportRelationTextView.setText("Succ");
@@ -680,11 +882,33 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
                     Log.v(LOG_TAG, "No Alarm Data");
                 }
                 break;
+            case AuthorizeListener.GETQRCODESIG_TYPE:
+                Toast.makeText(MainActivity.this, "QRSIG = " + WxQRCodeInfoManager.getInstance().qrcodeSig, Toast.LENGTH_SHORT).show();
+                break;
+            case BindingListener.SETQRCODE_STATE_TYPE:
+                Toast.makeText(MainActivity.this, "setQRCode state success", Toast.LENGTH_SHORT).show();
+                break;
+            case BindingListener.GET_BOT_AI_SPEECH_OPTION_TYPE:
+                Toast.makeText(MainActivity.this, "getBotAISpeechOption success", Toast.LENGTH_SHORT).show();
+                Log.v(LOG_TAG, "support size = " + ProductManager.getInstance().supportAISpeechItems.size());
+                break;
+            case BindingListener.SET_DEVICE_AI_SPEECH_TYPE:
+                Toast.makeText(MainActivity.this, "setDeviceAISpeech success", Toast.LENGTH_SHORT).show();
+                break;
+            case BindingListener.GET_DEVICE_AI_SPEECH_TYPE:
+                Toast.makeText(MainActivity.this, "getDeviceAISpeech success", Toast.LENGTH_SHORT).show();
+                Log.v(LOG_TAG, "currItem = " + ProductManager.getInstance().currAISpeechItem);
+                break;
+            case AuthorizeListener.UNIACCESS_TYPE:
+                Toast.makeText(MainActivity.this, "getDeviceAISpeech success", Toast.LENGTH_SHORT).show();
+                Log.v(LOG_TAG, "uniAccess Resp = " + commOpInfo.errMsg);
+                break;
         }
     }
 
     @Override
     public void onError(int type, CommOpInfo commOpInfo) {
+        Log.v(LOG_TAG, "onError type = " + type + ", commOpInfo = " + commOpInfo);
         switch (type)
         {
             case AuthorizeListener.AUTH_TYPE:
@@ -698,12 +922,8 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
             case AuthorizeListener.QQOPEN_TVSIDRECV_TYPE:
                 qqOpenLoginBtn.setEnabled(true);
                 break;
-            case AuthorizeListener.QQ_TVSIDRECV_TYPE:
-                qqLoginBtn.setEnabled(true);
-                break;
             case AuthorizeListener.TOKENVERIFY_TYPE:
                 qqOpenLoginBtn.setEnabled(true);
-                qqLoginBtn.setEnabled(true);
                 break;
             case AuthorizeListener.WX_VALID_LOGIN_TYPE:
                 Toast.makeText(MainActivity.this, "WX Login InValid", Toast.LENGTH_SHORT).show();
@@ -752,6 +972,24 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
             case AuthorizeListener.ALARMMANAGEMENT_TYPE:
                 Toast.makeText(MainActivity.this, "alarmManagement onError", Toast.LENGTH_SHORT).show();
                 break;
+            case AuthorizeListener.GETQRCODESIG_TYPE:
+                Toast.makeText(MainActivity.this, "getQRCodeSig Error", Toast.LENGTH_SHORT).show();
+                break;
+            case BindingListener.SETQRCODE_STATE_TYPE:
+                Toast.makeText(MainActivity.this, "setQRCode state error", Toast.LENGTH_SHORT).show();
+                break;
+            case BindingListener.GET_BOT_AI_SPEECH_OPTION_TYPE:
+                Toast.makeText(MainActivity.this, "getBotAISpeechOption onError", Toast.LENGTH_SHORT).show();
+                break;
+            case BindingListener.SET_DEVICE_AI_SPEECH_TYPE:
+                Toast.makeText(MainActivity.this, "setDeviceAISpeech onError", Toast.LENGTH_SHORT).show();
+                break;
+            case BindingListener.GET_DEVICE_AI_SPEECH_TYPE:
+                Toast.makeText(MainActivity.this, "getDeviceAISpeech onError", Toast.LENGTH_SHORT).show();
+                break;
+            case AuthorizeListener.UNIACCESS_TYPE:
+                Toast.makeText(MainActivity.this, "requestUniAccess onError", Toast.LENGTH_SHORT).show();
+                break;
         }
     }
 
@@ -767,6 +1005,11 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
         netEnvRG = (RadioGroup) findViewById(R.id.netenvrg);
         testEnvRB = (RadioButton) findViewById(R.id.testenvrb);
         formalEnvRB = (RadioButton) findViewById(R.id.formalenvrb);
+        exEnvRB = (RadioButton) findViewById(R.id.exenvrb);
+
+        loginfuncRG = (RadioGroup) findViewById(R.id.loginfuncrg);
+        normalRB = (RadioButton) findViewById(R.id.normalrb);
+        qrRB = (RadioButton) findViewById(R.id.qrrb);
 
         wxLoginBtn = (Button)findViewById(R.id.wxlogin);
         wxLogoutBtn = (Button)findViewById(R.id.wxlogout);
@@ -777,9 +1020,6 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
 
         qqOpenLoginBtn = (Button)findViewById(R.id.qqopenlogin);
         qqOpenLogoutBtn = (Button)findViewById(R.id.qqopenlogout);
-
-        qqLoginBtn = (Button)findViewById(R.id.qqlogin);
-        qqLogoutBtn = (Button)findViewById(R.id.qqlogout);
 
         toGetClientIdBtn = (Button) findViewById(R.id.getclientidbtn);
 
@@ -795,6 +1035,9 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
         bindPhoneNumberEditText = (EditText) findViewById(R.id.bindnumberedittext);
         bindPhoneNumberButton = (Button) findViewById(R.id.bindnumberbutton);
         bindPhoneNumberTextView = (TextView) findViewById(R.id.bindnumbertextview);
+
+        tvsOpenUrlEditText = (EditText) findViewById(R.id.tvsopenurledittext);
+        tvsOpenUrlButton = (Button) findViewById(R.id.tvsopenurlbutton);
 
         bindLocationButton = (Button) findViewById(R.id.bindlocation);
         queryLocationButton = (Button) findViewById(R.id.querylocation);
@@ -824,8 +1067,21 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
         toSmartLinkButton = (Button) findViewById(R.id.tosmartlinkbtn);
         toSoftAPButton = (Button) findViewById(R.id.tosoftapbtn);
         toQRLoginButton = (Button) findViewById(R.id.toqrloginbtn);
-        generateWXQRCodeButton = (Button) findViewById(R.id.generatewxqrcode);
+        toQRSDKLoginButton = (Button) findViewById(R.id.toqrsdkloginbtn);
         toMiniProgramButton = (Button) findViewById(R.id.reqminiprogram);
+        ddQRShowButton = (Button) findViewById(R.id.ddqrshowbtn);
+        ddQRScanButton = (Button) findViewById(R.id.ddqrscanbtn);
+        ddQRUnbindAndClearButton = (Button) findViewById(R.id.ddqrunbindandclear);
+
+        drQRShowButton = (Button) findViewById(R.id.drshowbutton);
+        drQRScanButton = (Button) findViewById(R.id.drscanbutton);
+
+        getBotAISpeechOptionButton = (Button) findViewById(R.id.getBotAISpeechOptionButton);
+        getDeviceAISpeechButton = (Button) findViewById(R.id.getDeviceAISpeechButton);
+        setDeviceAISpeechButton = (Button) findViewById(R.id.setDeviceAISpeechButton);
+
+        uniAccessButton = (Button) findViewById(R.id.uniAccessButton);
+        qrAuthButton = (Button) findViewById(R.id.qrauthbtn);
 
         wxTokenLayout = (LinearLayout) findViewById(R.id.wxtokenlayout);
         wxATTextView = (TextView)findViewById(R.id.accesstokenid);
@@ -833,18 +1089,12 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
 
         qqopenTokenLayout = (LinearLayout) findViewById(R.id.qqopentokenlayout);
         qqopenATTextView = (TextView)findViewById(R.id.accesstokenidqqopen);
-
-        qqTokenLayout = (LinearLayout) findViewById(R.id.qqtokenlayout);
-        qqATTextView = (TextView) findViewById(R.id.accesstokenidqq);
     }
 
     private void registerProxy() {
-        proxy = LoginProxy.getInstance(TEST_APPID_WX, TEST_APPID_QQOPEN, this);
-        innerProxy = LoginProxy.getInstance(TEST_APPID_WX, TEST_APPID_QQ, this);
-
+        proxy = LoginProxy.getInstance(TEST_APPID_WX, TEST_APPID_QQOPEN, MainActivity.this);
         wxInfoManager = (WxInfoManager) proxy.getInfoManager(ELoginPlatform.WX);
         qqOpenInfoManager = (QQOpenInfoManager) proxy.getInfoManager(ELoginPlatform.QQOpen);
-        qqInfoManager = (QQInfoManager) innerProxy.getInfoManager(ELoginPlatform.QQ);
 
         proxy.initNetEnv();
         proxy.setOwnActivity(this);
@@ -852,14 +1102,6 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
 
         proxy.setAuthorizeListener(this);
         proxy.setBindingListener(this);
-
-        innerProxy.setOwnActivity(this);
-        innerProxy.setAuthorizeListener(this);
-        innerProxy.setBindingListener(this);
-
-        mQRCodeProtocol = QRCodeProtocol.getInstance();
-        mQRCodeProtocol.setQRCodeStateListener(mQRCodeSstateListener);
-        oauth = DiffDevOAuthFactory.getDiffDevOAuth();
 
         isSimpleInterface = false;
     }
@@ -888,13 +1130,6 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
         else {
             qqOpenLoginBtn.setEnabled(true);
         }
-
-        if (innerProxy.isTokenExist(ELoginPlatform.QQ, this)) {
-            innerProxy.requestTokenVerify(ELoginPlatform.QQ, "productId", "dsn");
-        }
-        else {
-            qqLoginBtn.setEnabled(true);
-        }
     }
 
     private void showTokenInfo() {
@@ -911,11 +1146,6 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
         if (!"".equals(qqOpenInfoManager.accessToken)) {
             qqopenTokenLayout.setVisibility(View.VISIBLE);
             qqopenATTextView.setText("AccessToken:" + qqOpenInfoManager.accessToken);
-        }
-
-        if (!"".equals(qqInfoManager.accessToken)) {
-            qqTokenLayout.setVisibility(View.VISIBLE);
-            qqATTextView.setText("AccessToken: " + qqInfoManager.accessToken);
         }
     }
 
@@ -982,98 +1212,33 @@ public class MainActivity extends AppCompatActivity implements AuthorizeListener
         }
     };
 
-    QRCodeStateListener mQRCodeSstateListener = new QRCodeStateListener() {
+    DDQRCodeFontUICallback ddqrCodeFontUICallback = new DDQRCodeFontUICallback() {
         @Override
-        public void onSuccess(int type, Object object) {
-            WxQRCodeInfoManager mgr = (WxQRCodeInfoManager)object;
-            switch (type) {
-                case QRCodeStateListener.REQ_ACCESSTOKEN:
-                    Log.v(LOG_TAG, "REQ_ACCESSTOKEN = " + mgr.toString());
-                    mQRCodeProtocol.reqTicket(mgr.qrcodeToken);
-                    break;
-                case QRCodeStateListener.REQ_TICKET:
-                    Log.v(LOG_TAG, "REQ_TICKET = " + mgr.toString());
-                    boolean sigReady = QRCodeUtil.prepareSig();
-                    if (sigReady) {
-                        boolean authRet = oauth.auth(TEST_APPID_WX, "snsapi_userinfo", QRCodeUtil.sNoncestr, QRCodeUtil.sTimeStamp,
-                                QRCodeUtil.generateSig(TEST_APPID_WX, WxQRCodeInfoManager.getInstance().qrcodeTicket), oAuthListener);
-                    }
-                    break;
-            }
-        }
+        public void onFontChange(TextView number1TextView, TextView titleTextView, TextView hintTextView,
+                                 TextView number2TextView, TextView title2TextView, TextView hint2TextView,
+                                 TextView qrStateTextView, TextView customTextView, TextView refreshTextView) {
 
-        @Override
-        public void onError(int type, Object object) {
-            switch (type) {
-                case QRCodeStateListener.REQ_ACCESSTOKEN:
-                    break;
-                case QRCodeStateListener.REQ_TICKET:
-                    break;
-            }
         }
     };
 
-    OAuthListener oAuthListener = new OAuthListener() {
-
-        AlertDialog.Builder dialogBuilder;
-        ImageView qrImage;
-        TextView qrText;
-
+    QRKeyEventCallback qrKeyEventCallback = new QRKeyEventCallback() {
         @Override
-        public void onAuthGotQrcode(String qrcodeImgPath, byte[] imgBuf) {
-            Log.v(LOG_TAG, "onAuthGotQrcode imgBuf length = " + imgBuf.length);
-            View customView = LayoutInflater.from(MainActivity.this).inflate(R.layout.qrcode_dialog,null);
-            qrImage = (ImageView) customView.findViewById(R.id.qrcodeImage);
-            qrText = (TextView) customView.findViewById(R.id.qrstateText);
-            qrImage.setImageBitmap(byteArrayToBitmap(imgBuf));
-            qrText.setText(R.string.qrstate_ready);
-            dialogBuilder = new AlertDialog.Builder(MainActivity.this);
-            dialogBuilder.setView(customView);
-            dialogBuilder.show();
-        }
+        public void dispatchKeyEvent(KeyEvent event) {
 
+        }
+    };
+
+    DevRelationQRFontUICallback devRelationQRFontUICallback = new DevRelationQRFontUICallback() {
         @Override
-        public void onQrcodeScanned() {
-            Log.v(LOG_TAG, "onQrcodeScanned");
-            qrText.setText(R.string.qrstate_scaned);
-        }
+        public void onFontChange(TextView titleView, TextView hintTextView, TextView customTextView, TextView refreshTextView) {
 
+        }
+    };
+
+    QRCodeFontUICallback qrCodeFontUICallback = new QRCodeFontUICallback() {
         @Override
-        public void onAuthFinish(OAuthErrCode errCode, String authCode) {
-            Log.v(LOG_TAG, "onAuthFinish, errCode = " + errCode.toString() + ", authCode = " + authCode);
-            String tips = null;
-            switch (errCode) {
-                case WechatAuth_Err_OK:
-                    tips = getString(R.string.qrstate_result_succ);
-                    qrText.setText(tips);
-                    proxy.manageAcct(ELoginPlatform.WX, null, ConstantValues.APPLOGIC_OPER_TYPE_LOGIN, authCode);
-                    break;
-                case WechatAuth_Err_NormalErr:
-                    tips = getString(R.string.qrstate_result_normal_err);
-                    break;
-                case WechatAuth_Err_NetworkErr:
-                    tips = getString(R.string.qrstate_result_network_err);
-                    break;
-                case WechatAuth_Err_JsonDecodeErr:
-                    tips = getString(R.string.qrstate_result_json_decode_err);
-                    break;
-                case WechatAuth_Err_Cancel:
-                    tips = getString(R.string.qrstate_result_user_cancel);
-                    break;
-                case WechatAuth_Err_Timeout:
-                    tips = getString(R.string.qrstate_result_timeout_err);
-                    break;
-                default:
-                    break;
-            }
-        }
+        public void onFontChange(TextView titleTextView, TextView hintTextView, TextView customTextView, TextView refreshTextView) {
 
-        private Bitmap byteArrayToBitmap(byte[] arr) {
-            if(arr.length != 0) {
-                return BitmapFactory.decodeByteArray(arr, 0, arr.length);
-            } else {
-                return null;
-            }
         }
     };
 }

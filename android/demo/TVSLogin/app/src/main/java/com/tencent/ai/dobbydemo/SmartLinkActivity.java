@@ -12,6 +12,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -42,6 +43,8 @@ import java.util.regex.Pattern;
 
 
 public class SmartLinkActivity extends AppCompatActivity {
+
+    private final String LOG_TAG = SmartLinkActivity.class.getSimpleName();
 
     private Button toWifiSettingBtn;
 
@@ -90,8 +93,7 @@ public class SmartLinkActivity extends AppCompatActivity {
             }
         }
 
-        devProtocol = DevProtocol.getInstance();
-        devProtocol.setOwnActivity(this);
+        devProtocol = DevProtocol.getInstance(DevConfig.GGMM_PORT);
         devProtocol.setDevReqListener(new APListener());
 
         toWifiSettingBtn = (Button) findViewById(R.id.toWifiSettingBtn);
@@ -288,8 +290,9 @@ public class SmartLinkActivity extends AppCompatActivity {
 
         @Override
         public void onSuccess(int type, Object msg) {
+            Log.v(LOG_TAG, "onSuccess type = " + type + ", msg = " + msg);
             switch (type) {
-                case DevReqListener.GETSTATUS_TYPE:
+                case GETSTATUS_TYPE:
                     getStatusProgress.setVisibility(View.GONE);
                     getStatusText.setText((String)msg);
                     uuid = (String)msg;
@@ -300,7 +303,7 @@ public class SmartLinkActivity extends AppCompatActivity {
                         devProtocol.setTVSAccessToken(realIP, clientId);
                     }
                     break;
-                case DevReqListener.WLANGETAPLIST_TYPE:
+                case WLANGETAPLIST_TYPE:
                     wlanGetApListProgress.setVisibility(View.GONE);
                     apListInfo = (APListInfo)msg;
                     aplistBeanList = apListInfo.getAplist();
@@ -341,14 +344,11 @@ public class SmartLinkActivity extends AppCompatActivity {
                         }
                     });
                     break;
-                case DevReqListener.WLANCONNECTAP_TYPE:
+                case WLANCONNECTAP_TYPE:
                     if ("OK".equals((String) msg)) {
                     }
                     break;
-                case DevReqListener.WLANGETCONNECTSTATE_TYPE:
-                    Toast.makeText(SmartLinkActivity.this, (String)msg, Toast.LENGTH_LONG).show();
-                    break;
-                case DevReqListener.GETALEXAPROFILE_TYPE:
+                case GETALEXAPROFILE_TYPE:
                     try {
                         JSONObject obj = new JSONObject((String)msg);
                         String productId = obj.getString("productID");
@@ -360,28 +360,35 @@ public class SmartLinkActivity extends AppCompatActivity {
                         e.printStackTrace();
                     }
                     break;
-                case DevReqListener.SETTVSTOKEN_TYPE:
+                case SETTVSTOKEN_TYPE:
+                    break;
+                case ALEXALOGOUT_TYPE:
+                    break;
+                case RESTORETODEFAULT_TYPE:
                     break;
             }
         }
 
         @Override
         public void onError(int type, Object msg) {
+            Log.v(LOG_TAG, "onError type = " + type + ", msg = " + msg);
             switch (type) {
-                case DevReqListener.GETSTATUS_TYPE:
+                case GETSTATUS_TYPE:
                     getStatusProgress.setVisibility(View.GONE);
                     getStatusText.setText((String)msg);
                     break;
-                case DevReqListener.WLANGETAPLIST_TYPE:
+                case WLANGETAPLIST_TYPE:
                     wlanGetApListProgress.setVisibility(View.GONE);
                     break;
                 case WLANCONNECTAP_TYPE:
                     break;
-                case DevReqListener.WLANGETCONNECTSTATE_TYPE:
+                case GETALEXAPROFILE_TYPE:
                     break;
-                case DevReqListener.GETALEXAPROFILE_TYPE:
+                case SETTVSTOKEN_TYPE:
                     break;
-                case DevReqListener.SETTVSTOKEN_TYPE:
+                case ALEXALOGOUT_TYPE:
+                    break;
+                case RESTORETODEFAULT_TYPE:
                     break;
             }
         }

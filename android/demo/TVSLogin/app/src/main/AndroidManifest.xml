@@ -27,6 +27,11 @@
         </activity>
         <activity android:name=".SmartLinkActivity" />
         <activity android:name=".SoftAPActivity" />
+        <provider
+            android:name="qrom.component.wup.runInfo.QRomWupProvider"
+            android:exported="true"
+            android:process=":tcm_service"
+            android:authorities="com.tencent.ai.dobbydemo.wup.QRomProvider" />
     </application>
 
 </manifest>
